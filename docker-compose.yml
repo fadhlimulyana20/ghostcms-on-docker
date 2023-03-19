@@ -1,17 +1,57 @@
 version: '3.1'
 
 services:
+  # traefik:
+  #   image: "traefik:v2.9"
+  #   container_name: "traefik"
+  #   command:
+  #     #- "--log.level=DEBUG"
+  #     - "--api.insecure=true"
+  #     - "--providers.docker=true"
+  #     - "--providers.docker.exposedbydefault=false"
+  #     - "--entrypoints.web.address=:80"
+  #   ports:
+  #     - "80:80"
+  #     - "8081:8080"
+  #   depends_on:
+  #     - ghost
+  #   volumes:
+  #     - "/var/run/docker.sock:/var/run/docker.sock:ro"
 
   ghost:
     image: ghost:4-alpine
     restart: always
-    ports:
-      - 8080:2368
     env_file:
       - .env
+    depends_on:
+      - db
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.ghost.rule=Host(`ghost.localhost`)"
+      - "traefik.http.routers.ghost.entrypoints=web"
+      # - "traefik.http.routers.ghost.entrypoints=websecure"
+      # - "traefik.http.routers.ghost.tls.certresolver=mytlschallenge"
+    networks:
+      - ghost
+      - traefik_traefik
 
   db:
     image: mysql:8.0
     restart: always
-    environment:
-      MYSQL_ROOT_PASSWORD: example
+    ports:
+      - 3306:3306
+    volumes:
+      - mysql:/var/lib/mysql
+    env_file:
+      - .env
+    networks:
+      - ghost
+
+volumes:
+  mysql:
+
+networks:
+  ghost:
+  traefik_traefik:
+    external: true
+
